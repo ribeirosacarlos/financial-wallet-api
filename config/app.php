@@ -147,6 +147,7 @@ return [
         Illuminate\Translation\TranslationServiceProvider::class,
 
         App\Providers\RouteServiceProvider::class,
+        Illuminate\Hashing\HashServiceProvider::class,
     ],
 
     'aliases' => [
