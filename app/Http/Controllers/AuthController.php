@@ -82,32 +82,65 @@ class AuthController extends Controller
         }
     }
 
-    public function login(RegisterRequest $request)
+    public function login(Request $request)
     {
-        $fields = $request->validate([
-            'email' => 'required|string|email',
-            'password' => 'required|string',
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|string|email',
+                'password' => 'required|string',
+            ]);
 
-        $user = User::where('email', $fields['email'])->first();
+            if ($validator->fails()) {
+                Log::warning('Validation failed', ['errors' => $validator->errors()->toArray()]);
+                return response()->json([
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
 
-        if (!$user) {
-            return response(['message' => 'User não identificado'], 401);
+            try {
+                DB::connection()->getPdo();
+            } catch (\Exception $e) {
+                Log::error('Database connection failed: ' . $e->getMessage());
+                return response()->json(['message' => 'Database connection error'], 500);
+            }
+
+            if (!DB::getSchemaBuilder()->hasTable('users')) {
+                Log::error('Users table does not exist');
+                return response()->json(['message' => 'Database schema error'], 500);
+            }
+
+            $user = User::where('email', $request->email)->first();
+            if (!$user) {
+                Log::warning('User not found', ['email' => $request->email]);
+                return response()->json(['message' => 'User not found'], 401);
+            }
+            if (!Hash::check($request->password, $user->password)) {
+                Log::warning('Invalid credentials', ['email' => $request->email]);
+                return response()->json(['message' => 'Invalid credentials'], 401);
+            }
+
+            $token = $user->createToken('api_token')->plainTextToken;
+
+            return response()->json([
+                'user' => $user,
+                'token' => $token
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Login error: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'message' => 'An unexpected error occurred',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
-
-        if (!Hash::check($fields['password'], $user->password)) {
-            return response(['message' => 'Credenciais Invalidas'], 401);
-        }
-
-        $token = $user->createToken('api_token')->plainTextToken;
-
-        return response([
-            'user' => $user,
-            'token' => $token,
-        ], 200);
     }
 
-    public function logout(RegisterRequest $request)
+    public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
         
