@@ -18,7 +18,7 @@ class WalletController extends Controller
 {
     /**
      * @OA\Post(
-     *     path="/wallet/deposit",
+     *     path="/deposit",
      *     summary="Depositar valor na carteira",
      *     description="Adiciona um valor à carteira do usuário autenticado",
      *     operationId="deposit",
@@ -84,7 +84,7 @@ class WalletController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/wallet/transfer",
+     *     path="/transfer",
      *     summary="Transferir valor para outro usuário",
      *     description="Transfere um valor da carteira do usuário autenticado para outro usuário",
      *     operationId="transfer",
@@ -174,7 +174,7 @@ class WalletController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/wallet/reverse/{id}",
+     *     path="/reverse/{id}",
      *     summary="Reverter uma transação",
      *     description="Reverte uma transação específica pelo ID",
      *     operationId="reverse",

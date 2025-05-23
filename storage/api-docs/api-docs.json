@@ -16,7 +16,7 @@
         }
     ],
     "paths": {
-        "/auth/register": {
+        "/register": {
             "post": {
                 "tags": [
                     "Authentication"
@@ -144,7 +144,7 @@
                 }
             }
         },
-        "/auth/login": {
+        "/login": {
             "post": {
                 "tags": [
                     "Authentication"
@@ -268,7 +268,7 @@
                 }
             }
         },
-        "/auth/logout": {
+        "/logout": {
             "post": {
                 "tags": [
                     "Authentication"
@@ -317,7 +317,7 @@
                 ]
             }
         },
-        "/wallet/deposit": {
+        "/deposit": {
             "post": {
                 "tags": [
                     "Wallet"
@@ -411,7 +411,7 @@
                 ]
             }
         },
-        "/wallet/transfer": {
+        "/transfer": {
             "post": {
                 "tags": [
                     "Wallet"
@@ -512,7 +512,7 @@
                 ]
             }
         },
-        "/wallet/reverse/{id}": {
+        "/reverse/{id}": {
             "post": {
                 "tags": [
                     "Wallet"

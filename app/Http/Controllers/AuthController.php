@@ -19,7 +19,7 @@ class AuthController extends Controller
 {
     /**
      * @OA\Post(
-     *     path="/auth/register",
+     *     path="/register",
      *     summary="Registrar novo usuário",
      *     description="Cria um novo usuário e retorna o token de acesso",
      *     operationId="register",
@@ -138,7 +138,7 @@ class AuthController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/auth/login",
+     *     path="/login",
      *     summary="Login de usuário",
      *     description="Autentica um usuário e retorna o token de acesso",
      *     operationId="login",
@@ -218,8 +218,8 @@ class AuthController extends Controller
 
             $user = User::where('email', $request->email)->first();
             if (!$user) {
-                Log::warning('User not found', ['email' => $request->email]);
-                return response()->json(['message' => 'User not found'], 401);
+                Log::warning('Usuário não identificado', ['email' => $request->email]);
+                return response()->json(['message' => 'Usuário não identificado'], 401);
             }
             if (!Hash::check($request->password, $user->password)) {
                 Log::warning('Invalid credentials', ['email' => $request->email]);
@@ -248,7 +248,7 @@ class AuthController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/auth/logout",
+     *     path="/logout",
      *     summary="Logout de usuário",
      *     description="Revoga o token de acesso atual do usuário",
      *     operationId="logout",
