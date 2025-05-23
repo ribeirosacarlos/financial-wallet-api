@@ -8,8 +8,54 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * @OA\Tag(
+ *     name="Wallet",
+ *     description="API Endpoints para operações de carteira"
+ * )
+ */
 class WalletController extends Controller
 {
+    /**
+     * @OA\Post(
+     *     path="/wallet/deposit",
+     *     summary="Depositar valor na carteira",
+     *     description="Adiciona um valor à carteira do usuário autenticado",
+     *     operationId="deposit",
+     *     tags={"Wallet"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"amount"},
+     *             @OA\Property(property="amount", type="number", format="float", example=100.50, description="Valor a ser depositado")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Depósito realizado com sucesso",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Deposito realizado com sucesso!"),
+     *             @OA\Property(property="balance", type="number", format="float", example=500.75)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Erro na requisição",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Não foi possível depositar, valor negativo.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Erro de validação",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
     public function deposit(Request $request)
     {
         $request->validate(['amount' => 'required|numeric|min:0.01']);
@@ -36,6 +82,47 @@ class WalletController extends Controller
         return response(['message' => 'Deposito realizado com sucesso!', 'balance' => $user->fresh()->balance]);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/wallet/transfer",
+     *     summary="Transferir valor para outro usuário",
+     *     description="Transfere um valor da carteira do usuário autenticado para outro usuário",
+     *     operationId="transfer",
+     *     tags={"Wallet"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"amount", "recipient_email"},
+     *             @OA\Property(property="amount", type="number", format="float", example=50.00, description="Valor a ser transferido"),
+     *             @OA\Property(property="recipient_email", type="string", format="email", example="destinatario@exemplo.com", description="Email do destinatário")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Transferência realizada com sucesso",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Tranferencia realizada com sucesso!"),
+     *             @OA\Property(property="balance", type="number", format="float", example=450.75)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Erro na requisição",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Saldo insuficiente.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Erro de validação",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
     public function transfer(Request $request)
     {
         $request->validate([
@@ -85,6 +172,44 @@ class WalletController extends Controller
         return response(['message' => 'Tranferencia realizada com sucesso!', 'balance' => $sender->fresh()->balance]);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/wallet/reverse/{id}",
+     *     summary="Reverter uma transação",
+     *     description="Reverte uma transação específica pelo ID",
+     *     operationId="reverse",
+     *     tags={"Wallet"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID da transação a ser revertida",
+     *         @OA\Schema(type="integer", format="int64")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Transação revertida com sucesso",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Transaction reversed")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Erro na requisição",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Transaction already reversed")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Transação não encontrada",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="No query results for model [App\\Models\\Transaction] ID")
+     *         )
+     *     )
+     * )
+     */
     public function reverse(Request $request, $id)
     {
         $transaction = Transaction::findOrFail($id);
