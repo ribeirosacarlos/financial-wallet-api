@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\LogoutRequest;
+use App\Services\AuthService;
 
 /**
  * @OA\Tag(
@@ -17,6 +21,13 @@ use Illuminate\Support\Facades\Validator;
  */
 class AuthController extends Controller
 {
+protected $authService;
+
+    public function __construct(AuthService $authService)
+    {
+        $this->authService = $authService;
+    }
+
     /**
      * @OA\Post(
      *     path="/register",
@@ -65,75 +76,14 @@ class AuthController extends Controller
      *     )
      * )
      */
-    public function register(Request $request)
+    public function register(RegisterRequest $request)
     {
-        try {
-            // Validação com diagnóstico detalhado
-            $validator = Validator::make($request->all(), [
-                'name' => 'required|string|max:255',
-                'email' => 'required|string|email|max:255|unique:users,email',
-                'password' => 'required|string|min:8|confirmed',
-            ]);
-            
-            if ($validator->fails()) {
-                Log::warning('Validation failed', ['errors' => $validator->errors()->toArray()]);
-                return response()->json([
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-            
-            // Verificar conexão com banco de dados
-            try {
-                DB::connection()->getPdo();
-            } catch (\Exception $e) {
-                Log::error('Database connection failed: ' . $e->getMessage());
-                return response()->json(['message' => 'Database connection error'], 500);
-            }
-            
-            // Verificar tabela users
-            if (!DB::getSchemaBuilder()->hasTable('users')) {
-                Log::error('Users table does not exist');
-                return response()->json(['message' => 'Database schema error'], 500);
-            }
-            
-            // Criar usuário com transação
-            $userData = null;
-            $token = null;
-            
-            DB::beginTransaction();
-            try {
-                $userData = User::create([
-                    'name' => $request->name,
-                    'email' => $request->email,
-                    'password' => Hash::make($request->password),
-                ]);
-                
-                $token = $userData->createToken('api_token')->plainTextToken;
-                DB::commit();
-            } catch (\Exception $e) {
-                DB::rollBack();
-                Log::error('User creation failed: ' . $e->getMessage());
-                return response()->json(['message' => 'User creation failed: ' . $e->getMessage()], 500);
-            }
-            
-            return response()->json([
-                'user' => $userData,
-                'token' => $token
-            ], 201);
-            
-        } catch (\Exception $e) {
-            Log::error('Registration error: ' . $e->getMessage(), [
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            return response()->json([
-                'message' => 'An unexpected error occurred',
-                'error' => config('app.debug') ? $e->getMessage() : null
-            ], 500);
-        }
+        $data = $this->authService->register($request->validated());
+
+        return response()->json([
+            'user' => $data['user'],
+            'token' => $data['token']
+        ], 201);
     }
 
     /**
@@ -188,62 +138,14 @@ class AuthController extends Controller
      *     )
      * )
      */
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        try {
-            $validator = Validator::make($request->all(), [
-                'email' => 'required|string|email',
-                'password' => 'required|string',
-            ]);
+        $data = $this->authService->login($request->validated());
 
-            if ($validator->fails()) {
-                Log::warning('Validation failed', ['errors' => $validator->errors()->toArray()]);
-                return response()->json([
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            try {
-                DB::connection()->getPdo();
-            } catch (\Exception $e) {
-                Log::error('Database connection failed: ' . $e->getMessage());
-                return response()->json(['message' => 'Database connection error'], 500);
-            }
-
-            if (!DB::getSchemaBuilder()->hasTable('users')) {
-                Log::error('Users table does not exist');
-                return response()->json(['message' => 'Database schema error'], 500);
-            }
-
-            $user = User::where('email', $request->email)->first();
-            if (!$user) {
-                Log::warning('Usuário não identificado', ['email' => $request->email]);
-                return response()->json(['message' => 'Usuário não identificado'], 401);
-            }
-            if (!Hash::check($request->password, $user->password)) {
-                Log::warning('Invalid credentials', ['email' => $request->email]);
-                return response()->json(['message' => 'Invalid credentials'], 401);
-            }
-
-            $token = $user->createToken('api_token')->plainTextToken;
-
-            return response()->json([
-                'user' => $user,
-                'token' => $token
-            ], 200);
-
-        } catch (\Exception $e) {
-            Log::error('Login error: ' . $e->getMessage(), [
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json([
-                'message' => 'An unexpected error occurred',
-                'error' => config('app.debug') ? $e->getMessage() : null
-            ], 500);
-        }
+        return response()->json([
+            'user' => $data['user'],
+            'token' => $data['token']
+        ], 200);
     }
 
     /**
@@ -270,10 +172,12 @@ class AuthController extends Controller
      *     )
      * )
      */
-    public function logout(Request $request)
+    public function logout(LogoutRequest $request)
     {
-        $request->user()->currentAccessToken()->delete();
-        
-        return response(['message' => 'Logout realizado com sucesso'], status: 200);
+        $this->authService->logout($request->all());
+
+        return response()->json([
+            'message' => 'Logout realizado com sucesso'
+        ], 200);
     }
 }
