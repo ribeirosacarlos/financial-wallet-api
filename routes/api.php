@@ -13,4 +13,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/deposit', [WalletController::class, 'deposit']);
     Route::post('/transfer', [WalletController::class, 'transfer']);
+    Route::post('/reverse/{id}', [WalletController::class, 'reverse']);
 });
